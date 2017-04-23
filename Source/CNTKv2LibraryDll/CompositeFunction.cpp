@@ -1286,7 +1286,7 @@ namespace CNTK
             }
 
             m_computationNetwork->SetTraceLevel(Internal::GetComputationNetworkTraceLevel());
-            m_computationNetwork->SetTrackGapNans(Internal::GetComputationNetworkTrackGapNans());
+            m_computationNetwork->SetTrackGapNans(GetCheckedMode());
             m_computationNetwork->CompileNetwork();
 
             // Verify that the shapes of the output Variables that we computed match the corresponding nodes in the ComputationNetwork
@@ -1397,9 +1397,8 @@ namespace CNTK
 
         if (!inferredArgumentDimensions.empty())
         {
-            if (!m_latestFullyDefinedComposite)
+            if (m_fullyDefinedArgumentsMap.empty())
             {
-                assert(m_fullyDefinedArgumentsMap.empty());
                 for (auto inferredArgumentShapePair : inferredArgumentDimensions)
                 {
                     auto fullyDefinedArgument = inferredArgumentShapePair.first.Clone();
@@ -1407,7 +1406,8 @@ namespace CNTK
                     m_fullyDefinedArgumentsMap.insert({ inferredArgumentShapePair.first, fullyDefinedArgument });
                 }
 
-                m_latestFullyDefinedComposite = this->Clone(ParameterCloningMethod::Share, m_fullyDefinedArgumentsMap);
+                if (GetCheckedMode())
+                    m_latestFullyDefinedCompositeForCheckedModeValidation = this->Clone(ParameterCloningMethod::Share, m_fullyDefinedArgumentsMap);
             }
             else
             {
@@ -1421,8 +1421,8 @@ namespace CNTK
                     }
                 }
 
-                if (argumentShapeChangedSinceLastTime)
-                    m_latestFullyDefinedComposite->ValidateOrUpdateOutputs();
+                if (argumentShapeChangedSinceLastTime && m_latestFullyDefinedCompositeForCheckedModeValidation)
+                    m_latestFullyDefinedCompositeForCheckedModeValidation->ValidateOrUpdateOutputs();
             }
         }
 
